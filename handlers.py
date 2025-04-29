@@ -1,25 +1,33 @@
+# handlers.py
+
 from aiogram import types
 from db import add_task, get_tasks, get_executors
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-@router.message(F.text == "/start")
+# Регистрация хендлеров
+def register_handlers(dp):
+    dp.register_message_handler(start_handler, commands=["start"])
+    dp.register_message_handler(new_task_handler, commands=["new_task"])
+    dp.register_message_handler(tasks_handler, commands=["tasks"])
+    dp.register_message_handler(send_tasks_handler, commands=["send_tasks"])
+
+# Команда /start
 async def start_handler(message: types.Message):
     await message.answer("Привет! Отправь мне новое задание!")
 
-# Команда для создания задания
-@router.message(F.text == "/new_task")
+# Команда для создания нового задания
 async def new_task_handler(message: types.Message):
-    # Пример задания (здесь можно сделать диалог для ввода данных)
+    # Пример задания (можно сделать ввод через несколько шагов)
     user_id = message.from_user.id
     username = message.from_user.username
     description = "Задание по ремонту"
     price = 500.0
 
+    # Добавление задания в базу данных
     await add_task(user_id, username, description, price)
     await message.answer("Задание добавлено!")
 
 # Команда для просмотра всех заданий
-@router.message(F.text == "/tasks")
 async def tasks_handler(message: types.Message):
     tasks = await get_tasks()
     if tasks:
@@ -30,7 +38,6 @@ async def tasks_handler(message: types.Message):
         await message.answer("Нет заданий.")
 
 # Команда для рассылки задания исполнителям
-@router.message(F.text == "/send_tasks")
 async def send_tasks_handler(message: types.Message):
     tasks = await get_tasks()
     if tasks:
