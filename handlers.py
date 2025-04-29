@@ -1,44 +1,50 @@
-from aiogram import Dispatcher, types, F
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from db import add_executor, get_executors, add_task
+# handlers.py
 
+from aiogram import types
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.dispatcher import Dispatcher
+from db import add_task, get_all_executors
+
+# Регистрируем хендлеры
 def register_handlers(dp: Dispatcher):
-    @dp.message(F.text == "/start")
-    async def start_cmd(message: types.Message):
-        kb = ReplyKeyboardMarkup(resize_keyboard=True)
-        kb.add(KeyboardButton("📝 Разместить задание"), KeyboardButton("🛠 Я исполнитель"))
-        await message.answer("Привет! Кто ты?", reply_markup=kb)
 
-    @dp.message(F.text == "🛠 Я исполнитель")
-    async def reg_exec(message: types.Message):
-        await add_executor(message.from_user.id)
-        await message.answer("✅ Зарегистрирован как исполнитель.")
-
-    @dp.message(F.text == "📝 Разместить задание")
-    async def ask_task(message: types.Message):
-        await message.answer("Опиши задание с контактами:")
-
-    @dp.message(lambda msg: len(msg.text) > 20 and any(w in msg.text for w in ["₽", "+7", "тел"]))
-    async def save_task(message: types.Message):
-        desc = message.text
-        username = message.from_user.username or message.from_user.first_name
-        await add_task(message.from_user.id, username, desc)
-
-        btn = InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton("🟢 Откликнуться", callback_data=f"reply_{message.from_user.id}")]]
+    @dp.message_handler(commands=['start'])
+    async def start_handler(message: types.Message):
+        keyboard = InlineKeyboardMarkup(row_width=2)
+        keyboard.add(
+            InlineKeyboardButton("📝 Разместить задание", callback_data="client"),
+            InlineKeyboardButton("🛠 Я исполнитель", callback_data="executor")
         )
-        for uid in await get_executors():
+        await message.answer("Привет! Кто ты?", reply_markup=keyboard)
+
+    @dp.callback_query_handler(lambda c: c.data == "executor")
+    async def handle_executor(callback_query: types.CallbackQuery):
+        user_id = callback_query.from_user.id
+        add_task("executors", user_id)  # сохраняем id исполнителя
+        await callback_query.message.answer("✅ Вы зарегистрированы как исполнитель!")
+
+    @dp.callback_query_handler(lambda c: c.data == "client")
+    async def handle_client(callback_query: types.CallbackQuery):
+        await callback_query.message.answer("✍️ Введите описание задания:")
+        dp.register_message_handler(get_task, state=None, content_types=types.ContentTypes.TEXT)
+
+    async def get_task(message: types.Message):
+        desc = message.text
+        add_task("tasks", desc)  # сохраняем задание
+        await message.answer("✅ Задание размещено. Сейчас уведомим исполнителей.")
+
+        # Рассылаем задание всем исполнителям
+        executors = get_all_executors()
+        username = message.from_user.username or "аноним"
+        for uid in executors:
+            btn = InlineKeyboardMarkup().add(
+                InlineKeyboardButton("Откликнуться", callback_data=f"respond_{message.from_user.id}")
+            )
             try:
-                await message.bot.send_message(uid, f"📢 Новое задание от @{username}: {task}")
-
-{desc}", reply_markup=btn)
-            except:
-                continue
-        await message.answer("✅ Задание отправлено исполнителям.")
-
-    @dp.callback_query(F.data.startswith("reply_"))
-    async def on_reply(callback: types.CallbackQuery):
-        uid = int(callback.data.split("_")[1])
-        username = callback.from_user.username or callback.from_user.first_name
-        await callback.bot.send_message(uid, f"📩 @{username} откликнулся!")
-        await callback.answer("✅ Отклик отправлен.")
+                await message.bot.send_message(
+                    uid,
+                    f"📢 Новое задание от @{username}:\n\n{desc}",
+                    reply_markup=btn
+                )
+            except Exception as e:
+                print(f"Ошибка при отправке пользователю {uid}: {e}")
