@@ -29,7 +29,7 @@ def register_handlers(dp: Dispatcher):
         )
         for uid in await get_executors():
             try:
-                await message.bot.send_message(uid, f"📢 Новое задание от @{username}:
+                await message.bot.send_message(uid, f"📢 Новое задание от @{username}: {task}")
 
 {desc}", reply_markup=btn)
             except:
