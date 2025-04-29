@@ -6,7 +6,7 @@ from handlers import register_handlers
 
 # Загружаем переменные окружения
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("716023088:AAGpwBdCKZjcFQ21qE7jowaXps2_zIVbVWw")
 
 async def main():
     # Инициализация бота
