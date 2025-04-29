@@ -1,4 +1,5 @@
-# config.py
+# Токен бота
+TOKEN = '716023088:AAGpwBdCKZjcFQ21qE7jowaXps2_zIVbVWw'
 
-BOT_TOKEN = "716023088:AAGpwBdCKZjcFQ21qE7jowaXps2_zIVbVWw"
-DB_NAME = "tasks.db"
+# Имя базы данных
+DB_NAME = 'tasks.db'
