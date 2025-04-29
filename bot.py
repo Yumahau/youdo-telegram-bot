@@ -1,14 +1,13 @@
 import asyncio
 from aiogram import Bot, Dispatcher
-from config import BOT_TOKEN
 from handlers import register_handlers
-from db import init_db
+import os
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+TOKEN = os.getenv("BOT_TOKEN") or "716023088:AAGpwBdCKZjcFQ21qE7jowaXps2_zIVbVWw"
 
 async def main():
-    await init_db()
+    bot = Bot(token=TOKEN)
+    dp = Dispatcher()
     register_handlers(dp)
     await dp.start_polling(bot)
 
