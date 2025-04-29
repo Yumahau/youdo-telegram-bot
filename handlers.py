@@ -1,7 +1,7 @@
 from aiogram import types, F
 from aiogram import Router
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from db import add_task, get_all_executors
+from db import add_task, get_executors
 
 router = Router()
 
