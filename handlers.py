@@ -1,48 +1,45 @@
-from aiogram import types, F
-from aiogram import Router
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from db import add_task, get_executors
-
-router = Router()
+from aiogram import types
+from db import add_task, get_tasks, get_executors
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 @router.message(F.text == "/start")
 async def start_handler(message: types.Message):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📝 Разместить задание", callback_data="client")],
-        [InlineKeyboardButton(text="🛠 Я исполнитель", callback_data="executor")]
-    ])
-    await message.answer("Привет! Кто ты?", reply_markup=keyboard)
+    await message.answer("Привет! Отправь мне новое задание!")
 
-@router.callback_query(F.data == "executor")
-async def handle_executor(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    add_task("executors", user_id)
-    await callback.message.answer("✅ Вы зарегистрированы как исполнитель!")
+# Команда для создания задания
+@router.message(F.text == "/new_task")
+async def new_task_handler(message: types.Message):
+    # Пример задания (здесь можно сделать диалог для ввода данных)
+    user_id = message.from_user.id
+    username = message.from_user.username
+    description = "Задание по ремонту"
+    price = 500.0
 
-@router.callback_query(F.data == "client")
-async def handle_client(callback: types.CallbackQuery):
-    await callback.message.answer("✍️ Введите описание задания:")
+    await add_task(user_id, username, description, price)
+    await message.answer("Задание добавлено!")
 
-@router.message()
-async def get_task(message: types.Message):
-    desc = message.text
-    add_task("tasks", desc)
-    await message.answer("✅ Задание размещено. Сейчас уведомим исполнителей.")
+# Команда для просмотра всех заданий
+@router.message(F.text == "/tasks")
+async def tasks_handler(message: types.Message):
+    tasks = await get_tasks()
+    if tasks:
+        for task in tasks:
+            task_info = f"Задание: {task[2]}\nЦена: {task[3]} рублей\n\n"
+            await message.answer(task_info)
+    else:
+        await message.answer("Нет заданий.")
 
-    executors = get_all_executors()
-    username = message.from_user.username or "аноним"
-    for uid in executors:
-        btn = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Откликнуться", callback_data=f"respond_{message.from_user.id}")]
-        ])
-        try:
-            await message.bot.send_message(
-                uid,
-                f"📢 Новое задание от @{username}:\n\n{desc}",
-                reply_markup=btn
-            )
-        except Exception as e:
-            print(f"Ошибка при отправке пользователю {uid}: {e}")
-
-def register_handlers(dp):
-    dp.include_router(router)
+# Команда для рассылки задания исполнителям
+@router.message(F.text == "/send_tasks")
+async def send_tasks_handler(message: types.Message):
+    tasks = await get_tasks()
+    if tasks:
+        executors = await get_executors()
+        for task in tasks:
+            task_info = f"Задание: {task[2]}\nЦена: {task[3]} рублей\n\n"
+            for executor in executors:
+                # Отправка задания каждому исполнителю
+                await message.bot.send_message(executor, task_info)
+        await message.answer("Задания отправлены всем исполнителям!")
+    else:
+        await message.answer("Нет заданий для отправки.")
