@@ -1,7 +1,4 @@
-import os
-from dotenv import load_dotenv
+# config.py
 
-load_dotenv()
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-DB_NAME = os.getenv("DB_NAME", "tasks.db")
+BOT_TOKEN = "716023088:AAGpwBdCKZjcFQ21qE7jowaXps2_zIVbVWw"
+DB_NAME = "tasks.db"
